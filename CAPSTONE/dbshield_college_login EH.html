@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DBShield — College Security Dashboard</title>
+<style>
+:root{
+  --bg:#0a0e17; --panel:#111827; --panel-2:#0d1420; --border:#1f2937;
+  --text:#e5e9f0; --muted:#8b96a8; --teal:#2dd4bf; --teal-dim:#1a3d38;
+  --pink:#f472a0; --pink-dim:#3d1a2a; --red:#f87171; --green:#4ade80;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;}
+.hidden{display:none !important;}
+.muted{color:var(--muted);}
+.eyebrow{color:var(--teal);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+h1{font-size:28px;margin:6px 0;}
+h2{font-size:20px;margin:0 0 4px;}
+h3{font-size:16px;margin:0 0 8px;}
+.loading-banner{background:var(--teal-dim);color:var(--teal);padding:8px 16px;font-size:12px;text-align:center;}
+
+/* Login */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 20% 20%, #10182a 0%, var(--bg) 60%);padding:20px;}
+.login-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px;width:100%;max-width:380px;}
+.login-card label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;}
+.login-card input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);font-size:14px;}
+.btn-block{width:100%;margin-top:20px;}
+.error-text{color:var(--red);font-size:13px;margin-top:10px;min-height:16px;}
+.demo-accounts{margin-top:22px;border-top:1px solid var(--border);padding-top:14px;}
+.demo-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.demo-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:3px 0;
+  font-family:monospace;cursor:pointer;}
+.demo-row:hover{color:var(--teal);}
+
+/* App shell */
+.app{max-width:1200px;margin:0 auto;padding:24px 20px 60px;}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.user-box{text-align:right;}
+.user-name{font-weight:700;font-size:14px;}
+.user-role{color:var(--teal);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:2px 0 8px;}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 18px;border-bottom:1px solid var(--border);padding-bottom:12px;}
+.tab{background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .15s;}
+.tab:hover{color:var(--text);border-color:#334155;}
+.tab.active{background:var(--teal-dim);color:var(--teal);border-color:var(--teal);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.stat-label{color:var(--muted);font-size:12px;margin-bottom:6px;}
+.stat-value{font-size:26px;font-weight:800;}
+.stat-suffix{font-size:14px;color:var(--muted);font-weight:400;}
+
+.module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px;}
+.module-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.module-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.5px;padding:3px 0;margin-bottom:6px;}
+.tag-pink{color:var(--pink);}
+.tag-teal{color:var(--teal);}
+.dept-breakdown{font-size:13px;line-height:1.9;}
+
+.btn{border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn:hover{opacity:.88;}
+.btn-teal{background:var(--teal);color:#04201c;}
+.btn-primary{background:var(--teal);color:#04201c;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.inline-form{display:flex;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin-bottom:14px;}
+.inline-form input{flex:1;min-width:110px;padding:9px 10px;border-radius:6px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);font-size:13px;}
+.table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:560px;}
+th{text-align:left;color:var(--muted);font-weight:600;padding:11px 14px;border-bottom:1px solid var(--border);
+  text-transform:uppercase;font-size:10px;letter-spacing:.5px;white-space:nowrap;}
+td{padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.link-danger{color:var(--red);cursor:pointer;background:none;border:none;font-size:11px;font-weight:700;}
+
+.assess-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.assess-card input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+  background:var(--panel-2);color:var(--text);font-size:13px;margin:10px 0;}
+.result-box{margin-top:12px;padding:13px;border-radius:8px;font-size:12px;line-height:1.6;}
+.result-box.passed{background:var(--teal-dim);color:var(--teal);border:1px solid #14524a;}
+.result-box.vulnerable{background:var(--pink-dim);color:var(--pink);border:1px solid #5c2340;}
+.result-title{font-weight:800;letter-spacing:.5px;text-transform:uppercase;font-size:11px;margin-bottom:4px;}
+
+.settings-list{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:14px;}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;}
+.setting-row:last-child{border-bottom:none;}
+.setting-name{font-weight:700;font-size:13px;}
+.setting-state{font-size:11px;letter-spacing:.5px;margin-top:3px;}
+.setting-state.on{color:var(--teal);}
+.setting-state.off{color:var(--red);}
+.toggle-btn{padding:8px 18px;border-radius:8px;font-weight:700;font-size:12px;border:none;cursor:pointer;}
+.toggle-btn.on{background:var(--teal);color:#04201c;}
+.toggle-btn.off{background:var(--red);color:#2a0a0a;}
+.note-banner{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;
+  font-size:11px;color:var(--muted);margin-bottom:14px;}
+@media(max-width:800px){
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .module-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="loadingBanner" class="loading-banner">Loading college database…</div>
+
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-card">
+    <div class="eyebrow">SECURITY OPERATIONS CENTER</div>
+    <h1>DBShield College Portal</h1>
+    <p class="muted" style="font-size:13px;">Sign in to access the college database and security lab.</p>
+    <form id="loginForm">
+      <label>Username</label>
+      <input type="text" id="loginUsername" autocomplete="username" placeholder="e.g. admin" required>
+      <label>Password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" required>
+      <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+      <div id="loginError" class="error-text"></div>
+    </form>
+    <div class="demo-accounts">
+      <div class="demo-title">Demo accounts — click to fill</div>
+      <div class="demo-row" data-u="admin" data-p="Admin@2026!"><span>admin</span><span>Admin@2026!</span></div>
+      <div class="demo-row" data-u="rmenon" data-p="Faculty#456"><span>rmenon</span><span>Faculty#456</span></div>
+      <div class="demo-row" data-u="arjun23" data-p="Student@123"><span>arjun23</span><span>Student@123</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">SECURITY OPERATIONS CENTER</div>
+      <h1>Database Security Dashboard</h1>
+      <p class="muted" style="font-size:13px;">Controlled assessment, hardening and verification — integrated with a live college database.</p>
+    </div>
+    <div class="user-box">
+      <div class="user-name" id="userName">—</div>
+      <div class="user-role" id="userRole">—</div>
+      <button class="btn btn-ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="students">Students</button>
+    <button class="tab" data-tab="faculty">Faculty</button>
+    <button class="tab" data-tab="courses">Courses</button>
+    <button class="tab" data-tab="module1">Module 1 · Ethical Hacking</button>
+    <button class="tab" data-tab="module2">Module 2 · Hardening</button>
+    <button class="tab" data-tab="audit">Audit Logs</button>
+  </nav>
+
+  <main>
+    <section id="tab-overview" class="tab-panel active">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Security Score</div><div class="stat-value"><span id="statScore">—</span><span class="stat-suffix">/100</span></div></div>
+        <div class="stat-card"><div class="stat-label">Students</div><div class="stat-value" id="statStudents">—</div></div>
+        <div class="stat-card"><div class="stat-label">Faculty</div><div class="stat-value" id="statFaculty">—</div></div>
+        <div class="stat-card"><div class="stat-label">Courses</div><div class="stat-value" id="statCourses">—</div></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Avg GPA</div><div class="stat-value" id="statGpa">—</div></div>
+        <div class="stat-card"><div class="stat-label">Audit Events</div><div class="stat-value" id="statEvents">—</div></div>
+        <div class="stat-card"><div class="stat-label">Blocked</div><div class="stat-value" id="statBlocked">—</div></div>
+        <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value" id="statFailed">—</div></div>
+      </div>
+      <div class="module-grid">
+        <div class="module-card">
+          <div class="module-tag tag-pink">MODULE 1</div>
+          <h2>Ethical Hacking</h2>
+          <p class="muted" style="font-size:13px;">Run controlled vulnerability assessments against this college application.</p>
+          <button class="btn btn-teal" data-goto="module1">Open Module 1</button>
+        </div>
+        <div class="module-card">
+          <div class="module-tag tag-teal">MODULE 2</div>
+          <h2>Database Hardening</h2>
+          <p class="muted" style="font-size:13px;">Manage security controls and verify protection after remediation.</p>
+          <button class="btn btn-teal" data-goto="module2">Open Module 2</button>
+        </div>
+        <div class="module-card">
+          <h2>Audit Logs</h2>
+          <p class="muted" style="font-size:13px;">Review authentication, testing and hardening events.</p>
+          <button class="btn btn-teal" data-goto="audit">View Logs</button>
+        </div>
+        <div class="module-card">
+          <h2>Students by Department</h2>
+          <div id="deptBreakdown" class="dept-breakdown muted">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-students" class="tab-panel">
+      <div class="panel-header">
+        <h2>Student Management</h2>
+        <button class="btn btn-teal" id="addStudentBtn">+ Add Student</button>
+      </div>
+      <div id="studentForm" class="inline-form hidden">
+        <input placeholder="Roll No" id="s_roll">
+        <input placeholder="Name" id="s_name">
+        <input placeholder="Department" id="s_dept">
+        <input placeholder="Year" id="s_year" type="number" min="1" max="5">
+        <input placeholder="Email" id="s_email">
+        <input placeholder="GPA" id="s_gpa" type="number" step="0.1">
+        <button class="btn btn-primary" id="submitStudentBtn">Save</button>
+      </div>
+      <div class="table-wrap"><table id="studentsTable"><thead><tr>
+        <th>Roll No</th><th>Name</th><th>Department</th><th>Year</th><th>Email</th><th>GPA</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-faculty" class="tab-panel">
+      <div class="panel-header">
+        <h2>Faculty Directory</h2>
+        <button class="btn btn-teal" id="addFacultyBtn">+ Add Faculty</button>
+      </div>
+      <div id="facultyForm" class="inline-form hidden">
+        <input placeholder="Faculty ID" id="f_id">
+        <input placeholder="Name" id="f_name">
+        <input placeholder="Department" id="f_dept">
+        <input placeholder="Designation" id="f_desig">
+        <input placeholder="Email" id="f_email">
+        <button class="btn btn-primary" id="submitFacultyBtn">Save</button>
+      </div>
+      <div class="table-wrap"><table id="facultyTable"><thead><tr>
+        <th>Faculty ID</th><th>Name</th><th>Department</th><th>Designation</th><th>Email</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-courses" class="tab-panel">
+      <div class="panel-header">
+        <h2>Course Catalog</h2>
+        <button class="btn btn-teal" id="addCourseBtn">+ Add Course</button>
+      </div>
+      <div id="courseForm" class="inline-form hidden">
+        <input placeholder="Course Code" id="c_code">
+        <input placeholder="Course Name" id="c_name">
+        <input placeholder="Department" id="c_dept">
+        <input placeholder="Credits" id="c_credits" type="number" min="1" max="6">
+        <button class="btn btn-primary" id="submitCourseBtn">Save</button>
+      </div>
+      <div class="table-wrap"><table id="coursesTable"><thead><tr>
+        <th>Code</th><th>Name</th><th>Department</th><th>Credits</th><th>Faculty</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section id="tab-module1" class="tab-panel">
+      <div class="note-banner">All tests run only against this controlled security laboratory. Nothing here is ever executed as real SQL.</div>
+      <div class="module-grid">
+        <div class="assess-card">
+          <h3>SQL Injection Assessment</h3>
+          <p class="muted" style="font-size:12px;">Defensive pattern detection. The supplied test string is never executed as SQL.</p>
+          <input id="sqliInput" value="' OR '1'='1">
+          <button class="btn btn-teal" id="sqliBtn">Run Assessment</button>
+          <div id="sqliResult" class="result-box hidden"></div>
+        </div>
+        <div class="assess-card">
+          <h3>Weak Password Assessment</h3>
+          <input id="pwInput" type="text" placeholder="Enter a test password">
+          <button class="btn btn-teal" id="pwBtn">Check Password</button>
+          <div id="pwResult" class="result-box hidden"></div>
+        </div>
+        <div class="assess-card">
+          <h3>Authentication Security</h3>
+          <p class="muted" style="font-size:12px;">Checks the application's password hashing and lockout configuration.</p>
+          <button class="btn btn-teal" id="authBtn">Run Assessment</button>
+          <div id="authResult" class="result-box hidden"></div>
+        </div>
+        <div class="assess-card">
+          <h3>Access-Control Test</h3>
+          <p class="muted" style="font-size:12px;">Verifies that the current user's role is correctly enforced.</p>
+          <button class="btn btn-teal" id="acBtn">Run Assessment</button>
+          <div id="acResult" class="result-box hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-module2" class="tab-panel">
+      <h2>Module 2 — Database Hardening &amp; Security Management</h2>
+      <p class="muted" style="font-size:13px;">Admin users can enable or disable security controls for the controlled lab.</p>
+      <div id="settingsList" class="settings-list"></div>
+    </section>
+
+    <section id="tab-audit" class="tab-panel">
+      <h2>Audit Logs</h2>
+      <div class="table-wrap"><table id="auditTable"><thead><tr>
+        <th>Time</th><th>User</th><th>Action</th><th>Details</th><th>Status</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+let CURRENT_USER = null;
+let DB = { users: [], students: [], faculty: [], courses: [], audit_logs: [], settings: {} };
+
+// ---------------- storage helpers ----------------
+// Robust storage: works in a normal browser, as a local HTML file, and in preview environments.
+// If persistent storage is unavailable, the portal still works for unlimited logins in the current page session.
+const MEMORY_STORE = Object.create(null);
+function storageAvailable() {
+  try {
+    const k = "__dbshield_test__";
+    localStorage.setItem(k, "1"); localStorage.removeItem(k);
+    return true;
+  } catch (e) { return false; }
+}
+const HAS_LOCAL_STORAGE = storageAvailable();
+
+async function loadKey(key, fallback) {
+  // Prefer normal browser localStorage so the same HTML works independently of window.storage.
+  try {
+    if (HAS_LOCAL_STORAGE) {
+      const raw = localStorage.getItem(key);
+      if (raw !== null) return JSON.parse(raw);
+    }
+  } catch (e) { /* continue to memory */ }
+  if (Object.prototype.hasOwnProperty.call(MEMORY_STORE, key)) return MEMORY_STORE[key];
+  return fallback;
+}
+async function saveKey(key, value) {
+  // Always keep an in-memory copy so login never depends on external storage APIs.
+  MEMORY_STORE[key] = value;
+  try {
+    if (HAS_LOCAL_STORAGE) localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) { console.warn("Persistent storage unavailable; using session memory only."); }
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function nowIso() { return new Date().toISOString().replace(/\.\d+Z$/, "Z"); }
+
+async function logAction(username, action, details, status) {
+  DB.audit_logs.unshift({ id: Date.now() + Math.random(), timestamp: nowIso(), username, action, details, status });
+  DB.audit_logs = DB.audit_logs.slice(0, 200);
+  await saveKey("college:audit_logs", DB.audit_logs);
+}
+
+// ---------------- seed ----------------
+const DEFAULT_SETTINGS = {
+  parameterized_queries: { enabled: true, label: "Parameterized Queries" },
+  input_validation: { enabled: true, label: "Input Validation" },
+  password_hashing: { enabled: true, label: "Password Hashing" },
+  rbac: { enabled: true, label: "Role-Based Access Control" },
+  account_lockout: { enabled: true, label: "Account Lockout" },
+  audit_logging: { enabled: true, label: "Audit Logging" },
+  secure_sessions: { enabled: true, label: "Secure Sessions" },
+};
+
+async function seedIfNeeded() {
+  const seeded = await loadKey("college:seeded", false);
+  if (seeded) return;
+
+  const mk = async (username, password, role, full_name) => ({
+    id: crypto.randomUUID(), username, password_hash: await sha256(password),
+    role, full_name, failed_attempts: 0, locked_until: null,
+  });
+
+  const users = [
+    await mk("admin", "Admin@2026!", "admin", "System Administrator"),
+    await mk("rmenon", "Faculty#456", "faculty", "Dr. Radhika Menon"),
+    await mk("skumar", "Faculty#789", "faculty", "Prof. Suresh Kumar"),
+    await mk("arjun23", "Student@123", "student", "Arjun Prasad"),
+    await mk("divya23", "Student@456", "student", "Divya Ramesh"),
+    await mk("kabir23", "Student@789", "student", "Kabir Khan"),
+  ];
+
+  const students = [
+    { id: 1, roll_no: "CS23001", name: "Arjun Prasad", department: "Computer Science", year: 3, email: "arjun23@college.edu", gpa: 8.7 },
+    { id: 2, roll_no: "IT23014", name: "Divya Ramesh", department: "Information Technology", year: 2, email: "divya23@college.edu", gpa: 9.1 },
+    { id: 3, roll_no: "CS23045", name: "Kabir Khan", department: "Computer Science", year: 3, email: "kabir23@college.edu", gpa: 7.9 },
+  ];
+  const faculty = [
+    { id: 1, faculty_id: "FAC001", name: "Dr. Radhika Menon", department: "Computer Science", designation: "Associate Professor", email: "rmenon@college.edu" },
+    { id: 2, faculty_id: "FAC002", name: "Prof. Suresh Kumar", department: "Information Technology", designation: "Professor", email: "skumar@college.edu" },
+  ];
+  const courses = [
+    { id: 1, course_code: "CS301", course_name: "Database Management Systems", department: "Computer Science", credits: 4, faculty_name: "Dr. Radhika Menon" },
+    { id: 2, course_code: "CS405", course_name: "Network & Application Security", department: "Computer Science", credits: 3, faculty_name: "Dr. Radhika Menon" },
+    { id: 3, course_code: "IT210", course_name: "Web Application Development", department: "Information Technology", credits: 4, faculty_name: "Prof. Suresh Kumar" },
+  ];
+
+  await saveKey("college:users", users);
+  await saveKey("college:students", students);
+  await saveKey("college:faculty", faculty);
+  await saveKey("college:courses", courses);
+  await saveKey("college:settings", DEFAULT_SETTINGS);
+  await saveKey("college:audit_logs", [{
+    id: 1, timestamp: nowIso(), username: "system", action: "DATABASE_SEEDED",
+    details: "Initial college database created with demo users, students, faculty, courses.", status: "INFO",
+  }]);
+  await saveKey("college:seeded", true);
+}
+
+async function loadAll() {
+  DB.users = await loadKey("college:users", []);
+  DB.students = await loadKey("college:students", []);
+  DB.faculty = await loadKey("college:faculty", []);
+  DB.courses = await loadKey("college:courses", []);
+  DB.audit_logs = await loadKey("college:audit_logs", []);
+  DB.settings = await loadKey("college:settings", DEFAULT_SETTINGS);
+}
+
+// ---------------- auth ----------------
+const MAX_ATTEMPTS = 5, LOCK_MINUTES = 15;
+
+function isLocked(user) {
+  if (!user.locked_until) return false;
+  return new Date() < new Date(user.locked_until);
+}
+
+$("#loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("#loginError").textContent = "";
+  const username = $("#loginUsername").value.trim();
+  const password = $("#loginPassword").value;
+  const user = DB.users.find(u => u.username === username);
+
+  if (!user) {
+    await logAction(username, "LOGIN_FAILED", "Unknown username.", "FAILED");
+    $("#loginError").textContent = "Invalid username or password.";
+    return;
+  }
+  if (DB.settings.account_lockout.enabled && isLocked(user)) {
+    await logAction(username, "LOGIN_BLOCKED", "Account is temporarily locked.", "BLOCKED");
+    $("#loginError").textContent = "Account locked. Try again later.";
+    return;
+  }
+
+  const hash = await sha256(password);
+  const ok = hash === user.password_hash;
+
+  if (DB.settings.account_lockout.enabled) {
+    if (ok) { user.failed_attempts = 0; user.locked_until = null; }
+    else {
+      user.failed_attempts += 1;
+      if (user.failed_attempts >= MAX_ATTEMPTS) {
+        user.locked_until = new Date(Date.now() + LOCK_MINUTES * 60000).toISOString();
+      }
+    }
+    await saveKey("college:users", DB.users);
+  }
+
+  if (!ok) {
+    await logAction(username, "LOGIN_FAILED", "Incorrect password.", "FAILED");
+    $("#loginError").textContent = "Invalid username or password.";
+    return;
+  }
+
+  CURRENT_USER = { id: user.id, username: user.username, role: user.role, full_name: user.full_name };
+  await logAction(username, "LOGIN_SUCCESS", `Role: ${user.role}`, "SUCCESS");
+  showApp();
+});
+
+$$(".demo-row").forEach(row => {
+  row.addEventListener("click", () => {
+    $("#loginUsername").value = row.dataset.u;
+    $("#loginPassword").value = row.dataset.p;
+  });
+});
+
+$("#logoutBtn").addEventListener("click", async () => {
+  await logAction(CURRENT_USER.username, "LOGOUT", "", "INFO");
+  CURRENT_USER = null;
+  showLogin();
+});
+
+function showLogin() {
+  $("#loginScreen").classList.remove("hidden");
+  $("#app").classList.add("hidden");
+  $("#loginPassword").value = "";
+}
+function showApp() {
+  $("#loginScreen").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#userName").textContent = CURRENT_USER.full_name;
+  $("#userRole").textContent = CURRENT_USER.role;
+  renderOverview();
+}
+
+// ---------------- rbac ----------------
+function canWrite() { return CURRENT_USER && (CURRENT_USER.role === "admin" || CURRENT_USER.role === "faculty" || !DB.settings.rbac.enabled); }
+function canDelete() { return CURRENT_USER && (CURRENT_USER.role === "admin" || !DB.settings.rbac.enabled); }
+function requireRole(...roles) {
+  if (!DB.settings.rbac.enabled) return true;
+  if (roles.includes(CURRENT_USER.role)) return true;
+  logAction(CURRENT_USER.username, "ACCESS_DENIED", `Role '${CURRENT_USER.role}' attempted an action requiring ${roles}.`, "BLOCKED");
+  alert("Forbidden: insufficient role.");
+  return false;
+}
+
+// ---------------- tabs ----------------
+$$(".tab").forEach(tab => tab.addEventListener("click", () => activateTab(tab.dataset.tab)));
+$$("[data-goto]").forEach(btn => btn.addEventListener("click", () => activateTab(btn.dataset.goto)));
+
+function activateTab(name) {
+  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  $$(".tab-panel").forEach(p => p.classList.toggle("active", p.id === `tab-${name}`));
+  const loaders = { overview: renderOverview, students: renderStudents, faculty: renderFaculty,
+                     courses: renderCourses, module2: renderSettings, audit: renderAudit };
+  if (loaders[name]) loaders[name]();
+}
+
+// ---------------- overview ----------------
+function computeReport() {
+  const vals = Object.values(DB.settings);
+  const enabled = vals.filter(v => v.enabled).length;
+  const total = vals.length;
+  const score = total ? Math.round((enabled / total) * 100) : 0;
+  const blocked = DB.audit_logs.filter(l => l.status === "BLOCKED").length;
+  const failed = DB.audit_logs.filter(l => l.status === "FAILED").length;
+  return { score, total_events: DB.audit_logs.length, blocked, failed };
+}
+
+function renderOverview() {
+  const report = computeReport();
+  $("#statScore").textContent = report.score;
+  $("#statStudents").textContent = DB.students.length;
+  $("#statFaculty").textContent = DB.faculty.length;
+  $("#statCourses").textContent = DB.courses.length;
+  const avgGpa = DB.students.length ? (DB.students.reduce((a, s) => a + Number(s.gpa || 0), 0) / DB.students.length).toFixed(2) : "—";
+  $("#statGpa").textContent = avgGpa;
+  $("#statEvents").textContent = report.total_events;
+  $("#statBlocked").textContent = report.blocked;
+  $("#statFailed").textContent = report.failed;
+
+  const byDept = {};
+  DB.students.forEach(s => byDept[s.department] = (byDept[s.department] || 0) + 1);
+  const entries = Object.entries(byDept);
+  $("#deptBreakdown").innerHTML = entries.length
+    ? entries.map(([d, c]) => `<div>${esc(d)} — <strong>${c}</strong></div>`).join("")
+    : "No data yet.";
+}
+
+// ---------------- students ----------------
+function renderStudents() {
+  $("#studentsTable tbody").innerHTML = DB.students.map(s => `
+    <tr><td>${esc(s.roll_no)}</td><td>${esc(s.name)}</td><td>${esc(s.department)}</td>
+    <td>${s.year}</td><td>${esc(s.email)}</td><td>${s.gpa}</td>
+    <td>${canDelete() ? `<button class="link-danger" data-del-student="${s.id}">Delete</button>` : ""}</td></tr>`
+  ).join("");
+  $("#addStudentBtn").classList.toggle("hidden", !canWrite());
+  $$("[data-del-student]").forEach(b => b.addEventListener("click", () => deleteStudent(Number(b.dataset.delStudent))));
+}
+$("#addStudentBtn").addEventListener("click", () => $("#studentForm").classList.toggle("hidden"));
+$("#submitStudentBtn").addEventListener("click", async () => {
+  if (!requireRole("admin", "faculty")) return;
+  const roll_no = $("#s_roll").value.trim(), name = $("#s_name").value.trim(), department = $("#s_dept").value.trim(),
+        year = $("#s_year").value, email = $("#s_email").value.trim(), gpa = $("#s_gpa").value || 0;
+  if (DB.settings.input_validation.enabled && (!roll_no || !name || !department || !year || !email)) {
+    alert("Missing/invalid fields."); return;
+  }
+  const id = (DB.students.reduce((m, s) => Math.max(m, s.id), 0)) + 1;
+  DB.students.push({ id, roll_no, name, department, year: Number(year), email, gpa: Number(gpa) });
+  await saveKey("college:students", DB.students);
+  await logAction(CURRENT_USER.username, "STUDENT_ADDED", roll_no, "SUCCESS");
+  ["s_roll","s_name","s_dept","s_year","s_email","s_gpa"].forEach(id2 => $("#"+id2).value = "");
+  $("#studentForm").classList.add("hidden");
+  renderStudents(); renderOverview();
+});
+async function deleteStudent(id) {
+  if (!requireRole("admin")) return;
+  if (!confirm("Delete this record?")) return;
+  const row = DB.students.find(s => s.id === id);
+  DB.students = DB.students.filter(s => s.id !== id);
+  await saveKey("college:students", DB.students);
+  await logAction(CURRENT_USER.username, "STUDENT_DELETED", row ? row.roll_no : String(id), "SUCCESS");
+  renderStudents(); renderOverview();
+}
+
+// ---------------- faculty ----------------
+function renderFaculty() {
+  $("#facultyTable tbody").innerHTML = DB.faculty.map(f => `
+    <tr><td>${esc(f.faculty_id)}</td><td>${esc(f.name)}</td><td>${esc(f.department)}</td>
+    <td>${esc(f.designation)}</td><td>${esc(f.email)}</td>
+    <td>${canDelete() ? `<button class="link-danger" data-del-faculty="${f.id}">Delete</button>` : ""}</td></tr>`
+  ).join("");
+  $("#addFacultyBtn").classList.toggle("hidden", !(CURRENT_USER.role === "admin" || !DB.settings.rbac.enabled));
+  $$("[data-del-faculty]").forEach(b => b.addEventListener("click", () => deleteFaculty(Number(b.dataset.delFaculty))));
+}
+$("#addFacultyBtn").addEventListener("click", () => $("#facultyForm").classList.toggle("hidden"));
+$("#submitFacultyBtn").addEventListener("click", async () => {
+  if (!requireRole("admin")) return;
+  const faculty_id = $("#f_id").value.trim(), name = $("#f_name").value.trim(), department = $("#f_dept").value.trim(),
+        designation = $("#f_desig").value.trim(), email = $("#f_email").value.trim();
+  if (DB.settings.input_validation.enabled && (!faculty_id || !name || !department || !designation || !email)) {
+    alert("Missing/invalid fields."); return;
+  }
+  const id = (DB.faculty.reduce((m, f) => Math.max(m, f.id), 0)) + 1;
+  DB.faculty.push({ id, faculty_id, name, department, designation, email });
+  await saveKey("college:faculty", DB.faculty);
+  await logAction(CURRENT_USER.username, "FACULTY_ADDED", faculty_id, "SUCCESS");
+  ["f_id","f_name","f_dept","f_desig","f_email"].forEach(id2 => $("#"+id2).value = "");
+  $("#facultyForm").classList.add("hidden");
+  renderFaculty(); renderOverview();
+});
+async function deleteFaculty(id) {
+  if (!requireRole("admin")) return;
+  if (!confirm("Delete this record?")) return;
+  const row = DB.faculty.find(f => f.id === id);
+  DB.faculty = DB.faculty.filter(f => f.id !== id);
+  await saveKey("college:faculty", DB.faculty);
+  await logAction(CURRENT_USER.username, "FACULTY_DELETED", row ? row.faculty_id : String(id), "SUCCESS");
+  renderFaculty(); renderOverview();
+}
+
+// ---------------- courses ----------------
+function renderCourses() {
+  $("#coursesTable tbody").innerHTML = DB.courses.map(c => `
+    <tr><td>${esc(c.course_code)}</td><td>${esc(c.course_name)}</td><td>${esc(c.department)}</td>
+    <td>${c.credits}</td><td>${esc(c.faculty_name || "—")}</td>
+    <td>${canDelete() ? `<button class="link-danger" data-del-course="${c.id}">Delete</button>` : ""}</td></tr>`
+  ).join("");
+  $("#addCourseBtn").classList.toggle("hidden", !canWrite());
+  $$("[data-del-course]").forEach(b => b.addEventListener("click", () => deleteCourse(Number(b.dataset.delCourse))));
+}
+$("#addCourseBtn").addEventListener("click", () => $("#courseForm").classList.toggle("hidden"));
+$("#submitCourseBtn").addEventListener("click", async () => {
+  if (!requireRole("admin", "faculty")) return;
+  const course_code = $("#c_code").value.trim(), course_name = $("#c_name").value.trim(),
+        department = $("#c_dept").value.trim(), credits = $("#c_credits").value;
+  if (DB.settings.input_validation.enabled && (!course_code || !course_name || !department || !credits)) {
+    alert("Missing/invalid fields."); return;
+  }
+  const id = (DB.courses.reduce((m, c) => Math.max(m, c.id), 0)) + 1;
+  DB.courses.push({ id, course_code, course_name, department, credits: Number(credits), faculty_name: null });
+  await saveKey("college:courses", DB.courses);
+  await logAction(CURRENT_USER.username, "COURSE_ADDED", course_code, "SUCCESS");
+  ["c_code","c_name","c_dept","c_credits"].forEach(id2 => $("#"+id2).value = "");
+  $("#courseForm").classList.add("hidden");
+  renderCourses(); renderOverview();
+});
+async function deleteCourse(id) {
+  if (!requireRole("admin")) return;
+  if (!confirm("Delete this record?")) return;
+  const row = DB.courses.find(c => c.id === id);
+  DB.courses = DB.courses.filter(c => c.id !== id);
+  await saveKey("college:courses", DB.courses);
+  await logAction(CURRENT_USER.username, "COURSE_DELETED", row ? row.course_code : String(id), "SUCCESS");
+  renderCourses(); renderOverview();
+}
+
+// ---------------- module 1 ----------------
+const SQLI_PATTERNS = [
+  // Tautologies / boolean-based
+  { re: /(\bOR\b|\bAND\b)\s+['"]?\d+['"]?\s*=\s*['"]?\d+/i, label: "Tautology (OR/AND N=N)" },
+  { re: /'\s*OR\s*'?.*=.*/i, label: "Tautology (quoted OR)" },
+  { re: /\bOR\b\s+['"][^'"]*['"]\s*=\s*['"][^'"]*['"]/i, label: "String tautology" },
+  // Comment-based
+  { re: /--/, label: "SQL line comment (--)" },
+  { re: /\/\*.*\*\//s, label: "SQL block comment" },
+  { re: /#/, label: "MySQL comment (#)" },
+  // Stacked / destructive queries
+  { re: /;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|GRANT|REVOKE)\s/i, label: "Stacked destructive statement" },
+  // Union-based
+  { re: /\bUNION\b\s+(ALL\s+)?\bSELECT\b/i, label: "UNION SELECT" },
+  // Time-based blind
+  { re: /\bSLEEP\s*\(/i, label: "SLEEP() time-based blind" },
+  { re: /\bBENCHMARK\s*\(/i, label: "BENCHMARK() time-based blind" },
+  { re: /\bWAITFOR\s+DELAY\b/i, label: "WAITFOR DELAY (MSSQL)" },
+  { re: /\bPG_SLEEP\s*\(/i, label: "PG_SLEEP (PostgreSQL)" },
+  // Error-based / info disclosure
+  { re: /\bEXTRACTVALUE\s*\(/i, label: "EXTRACTVALUE error-based" },
+  { re: /\bUPDATEXML\s*\(/i, label: "UPDATEXML error-based" },
+  { re: /\bCAST\s*\(.*\bAS\b/i, label: "CAST() type coercion" },
+  { re: /\bCONVERT\s*\(/i, label: "CONVERT() type coercion" },
+  // Subquery / information schema probing
+  { re: /\bINFORMATION_SCHEMA\b/i, label: "INFORMATION_SCHEMA probing" },
+  { re: /\b(sys\.)?(tables|columns|user_tables)\b/i, label: "System catalog probing" },
+  { re: /\bSELECT\b.*\bFROM\b.*\bWHERE\b/i, label: "Nested SELECT statement" },
+  // Command execution / stored procedures
+  { re: /\bxp_cmdshell\b/i, label: "xp_cmdshell execution" },
+  { re: /\bexec(\s|\()+/i, label: "EXEC/stored procedure call" },
+  { re: /\bsp_executesql\b/i, label: "sp_executesql" },
+  // Out-of-band / DNS exfiltration
+  { re: /\bLOAD_FILE\s*\(/i, label: "LOAD_FILE() file read" },
+  { re: /\bINTO\s+(OUT|DUMP)FILE\b/i, label: "INTO OUTFILE/DUMPFILE" },
+  // Encoding / obfuscation tricks
+  { re: /\bCHAR\s*\(\s*\d+/i, label: "CHAR() obfuscation" },
+  { re: /0x[0-9a-f]{4,}/i, label: "Hex-encoded literal" },
+  { re: /%27|%22|%2D%2D|%23/i, label: "URL-encoded quote/comment" },
+  // NoSQL-style injection (for completeness)
+  { re: /\$where\s*:/i, label: "NoSQL $where operator" },
+  { re: /\$ne\s*:|\$gt\s*:|\$regex\s*:/i, label: "NoSQL operator injection" },
+];
+function assessSqli(input) {
+  if (!input) return { status: "PASSED", message: "No input supplied." };
+  const matches = SQLI_PATTERNS.filter(p => p.re.test(input));
+  if (matches.length) {
+    const labels = matches.map(m => m.label).join(", ");
+    return { status: "VULNERABLE", message: `Suspicious SQL-injection pattern(s) detected in the controlled test input: ${labels}. No SQL was executed.` };
+  }
+  return { status: "PASSED", message: "No known SQL-injection pattern detected in the supplied input." };
+}
+function assessPassword(pw) {
+  pw = pw || "";
+  const checks = {
+    length: pw.length >= 8, lowercase: /[a-z]/.test(pw), uppercase: /[A-Z]/.test(pw),
+    number: /\d/.test(pw), special: /[^A-Za-z0-9]/.test(pw),
+  };
+  const passed = Object.values(checks).every(Boolean);
+  return { status: passed ? "PASSED" : "VULNERABLE",
+    message: passed ? "Password satisfies all strength requirements." : "Password does not satisfy all strength requirements.",
+    checks };
+}
+function assessAuth() {
+  const hashing = DB.settings.password_hashing.enabled, lockout = DB.settings.account_lockout.enabled;
+  if (hashing && lockout) return { status: "PASSED", message: "Account lockout and hashed-password authentication are enabled." };
+  const missing = [];
+  if (!hashing) missing.push("password hashing");
+  if (!lockout) missing.push("account lockout");
+  return { status: "VULNERABLE", message: `Disabled control(s) detected: ${missing.join(", ")}.` };
+}
+function assessAccessControl() {
+  if (DB.settings.rbac.enabled) return { status: "PASSED", message: `Current role ('${CURRENT_USER.role}') has permitted testing access under RBAC.` };
+  return { status: "VULNERABLE", message: "RBAC is disabled — role restrictions are not being enforced." };
+}
+function renderResult(el, result) {
+  el.classList.remove("hidden", "passed", "vulnerable");
+  el.classList.add(result.status === "PASSED" ? "passed" : "vulnerable");
+  let extra = "";
+  if (result.checks) extra = "<br>" + Object.entries(result.checks).map(([k,v]) => `${k}: ${v ? "✓" : "✗"}`).join(" · ");
+  el.innerHTML = `<div class="result-title">${result.status}</div>${esc(result.message)}${extra}`;
+}
+$("#sqliBtn").addEventListener("click", async () => {
+  const r = assessSqli($("#sqliInput").value);
+  renderResult($("#sqliResult"), r);
+  await logAction(CURRENT_USER.username, "SQLI_ASSESSMENT", r.status, "INFO");
+  renderOverview();
+});
+$("#pwBtn").addEventListener("click", async () => {
+  const r = assessPassword($("#pwInput").value);
+  renderResult($("#pwResult"), r);
+  await logAction(CURRENT_USER.username, "PASSWORD_ASSESSMENT", r.status, "INFO");
+  renderOverview();
+});
+$("#authBtn").addEventListener("click", async () => {
+  const r = assessAuth();
+  renderResult($("#authResult"), r);
+  await logAction(CURRENT_USER.username, "AUTH_ASSESSMENT", r.status, "INFO");
+  renderOverview();
+});
+$("#acBtn").addEventListener("click", async () => {
+  const r = assessAccessControl();
+  renderResult($("#acResult"), r);
+  await logAction(CURRENT_USER.username, "ACCESS_CONTROL_ASSESSMENT", r.status, "INFO");
+  renderOverview();
+});
+
+// ---------------- module 2 ----------------
+function renderSettings() {
+  const isAdmin = CURRENT_USER.role === "admin";
+  $("#settingsList").innerHTML = Object.entries(DB.settings).map(([key, s]) => `
+    <div class="setting-row">
+      <div>
+        <div class="setting-name">${esc(s.label)}</div>
+        <div class="setting-state ${s.enabled ? "on" : "off"}">${s.enabled ? "ENABLED" : "DISABLED"}</div>
+      </div>
+      ${isAdmin ? `<button class="toggle-btn ${s.enabled ? "off" : "on"}" data-toggle="${key}">${s.enabled ? "Disable" : "Enable"}</button>` : ""}
+    </div>`).join("");
+  $$("[data-toggle]").forEach(b => b.addEventListener("click", () => toggleSetting(b.dataset.toggle)));
+}
+async function toggleSetting(key) {
+  if (!requireRole("admin")) return;
+  const s = DB.settings[key];
+  s.enabled = !s.enabled;
+  await saveKey("college:settings", DB.settings);
+  await logAction(CURRENT_USER.username, "SETTING_TOGGLED", `${s.label} -> ${s.enabled ? "ENABLED" : "DISABLED"}`, "SUCCESS");
+  renderSettings(); renderOverview();
+}
+
+// ---------------- audit ----------------
+function renderAudit() {
+  if (!requireRole("admin", "faculty")) { activateTab("overview"); return; }
+  $("#auditTable tbody").innerHTML = DB.audit_logs.map(r => `
+    <tr><td>${esc(r.timestamp)}</td><td>${esc(r.username || "—")}</td>
+    <td>${esc(r.action)}</td><td>${esc(r.details || "")}</td><td>${esc(r.status)}</td></tr>`).join("");
+}
+
+// ---------------- util ----------------
+function esc(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+// ---------------- boot ----------------
+(async function boot() {
+  try {
+    await seedIfNeeded();
+    await loadAll();
+    // Safety net: demo accounts must always be available, even if old/corrupt storage exists.
+    if (!Array.isArray(DB.users) || DB.users.length === 0) {
+      try { if (HAS_LOCAL_STORAGE) localStorage.removeItem("college:seeded"); } catch (e) {}
+      delete MEMORY_STORE["college:seeded"];
+      await seedIfNeeded();
+      await loadAll();
+    }
+    $("#loadingBanner").classList.add("hidden");
+    showLogin();
+  } catch (e) {
+    console.error(e);
+    // Final fallback: show the login screen rather than leaving the page stuck.
+    $("#loadingBanner").classList.add("hidden");
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
